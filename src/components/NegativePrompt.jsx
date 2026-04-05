@@ -1,5 +1,13 @@
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Wand2 } from 'lucide-react';
 import { useState } from 'react';
+import { getNegativePrompt } from '../lib/promptEngine.js';
+
+const MODELS = [
+  { value: 'pony', label: 'Pony' },
+  { value: 'sd15', label: 'SD 1.5' },
+  { value: 'sdxl', label: 'SDXL' },
+  { value: 'real', label: 'Real' },
+];
 
 const CopyButton = ({ text, label }) => {
   const [copied, setCopied] = useState(false);
@@ -25,13 +33,23 @@ const NegativePrompt = ({ negativePrompt, setNegativePrompt }) => {
           <h2 className="text-sm font-semibold">ネガティブプロンプト</h2>
           <CopyButton text={negativePrompt} label="コピー" />
         </div>
-        <div className="bg-[#0d1117] p-4">
+        <div className="bg-[#0d1117] p-4 space-y-3">
           <textarea
             className="w-full bg-[#161b22] border border-[#30363d] rounded-md px-3 py-2 text-sm font-mono text-[#f0883e]/70 outline-none focus:border-[#f0883e]/40 resize-none transition"
             rows={3}
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
           />
+          <div className="flex items-center gap-2">
+            <Wand2 size={13} className="text-[#8b949e]" />
+            <span className="text-xs text-[#8b949e]">モデル別テンプレート:</span>
+            {MODELS.map(m => (
+              <button key={m.value} onClick={() => setNegativePrompt(getNegativePrompt(m.value))}
+                className="text-xs px-2 py-0.5 rounded border border-[#30363d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#58a6ff]/40 transition">
+                {m.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
