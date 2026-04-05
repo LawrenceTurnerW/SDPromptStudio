@@ -12,8 +12,12 @@ if (!existsSync(PID_FILE)) {
 }
 
 const pid = readFileSync(PID_FILE, 'utf-8').trim();
+if (!/^\d+$/.test(pid)) {
+  console.log(`Invalid PID: ${pid}`);
+  try { unlinkSync(PID_FILE); } catch {}
+  process.exit(1);
+}
 try {
-  // Windows: taskkill for specific PID only
   execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
   console.log(`Stopped server (PID: ${pid})`);
 } catch {

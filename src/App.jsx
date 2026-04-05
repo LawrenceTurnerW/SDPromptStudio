@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout, FolderOpen, Check } from 'lucide-react';
+import { Layout, Settings, FolderOpen, Check } from 'lucide-react';
 import TemplateEditor from './components/TemplateEditor.jsx';
 import PresetManager from './components/PresetManager.jsx';
 import NegativePrompt from './components/NegativePrompt.jsx';

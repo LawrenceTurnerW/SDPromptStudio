@@ -36,8 +36,9 @@ Create vivid, specific tags that will produce a compelling image.`,
 export function getStructurePrompt(structure) {
   const prompts = {
     common: `[ROLE: COMMON — Global settings applied to ALL regions]
-OUTPUT SCOPE: Quality tags, rendering style, global lighting/effects only.
-FORBIDDEN: Any specific character traits (1girl, hair color, eye color, clothing, expressions), poses, body parts, background objects, or scenery. These MUST be completely removed from output.`,
+OUTPUT SCOPE: Rendering style, global lighting/effects only.
+FORBIDDEN: Any specific character traits (1girl, hair color, eye color, clothing, expressions), poses, body parts, background objects, or scenery. These MUST be completely removed from output.
+NOTE: Do NOT include quality/score tags — they are added automatically.`,
     base: `[ROLE: BASE — Background & Environment only]
 OUTPUT SCOPE: Scenery, location, time of day, weather, atmosphere, background objects, environmental lighting.
 FORBIDDEN: Any character traits, clothing, poses, body descriptions, camera angles, or framing. These MUST be completely removed from output.`,
@@ -52,15 +53,17 @@ export function getModelPrompt(modelType) {
   const prompts = {
     pony: `Style: Danbooru tag format.
 - Use established Danbooru tags (e.g., "long_hair" not "long flowing hair")
-- Include score tags at the start: score_9, score_8_up, score_7_up
-- Underscores in multi-word tags are optional but preferred`,
+- Underscores in multi-word tags are optional
+- Preserve any emphasis weight syntax like (tag:1.3) as-is`,
     sd15: `Style: Concise comma-separated tags.
 - Keep tags short and direct
 - Avoid natural language descriptions
+- Preserve any emphasis weight syntax like (tag:1.3) as-is
 - Prioritize well-known tags that SD 1.5 responds to`,
     sdxl: `Style: Mix of tags and short natural language phrases.
 - Can use both "blue eyes" and "piercing blue eyes"
 - Include cinematic/photographic terms where appropriate
+- Preserve any emphasis weight syntax like (tag:1.3) as-is
 - More descriptive than SD 1.5 but still concise`,
     real: `Style: Photographic / natural language.
 - Use photography terms: focal length (85mm, 50mm), aperture (f/1.8), lighting setups
@@ -98,29 +101,36 @@ OUTPUT RULES:
 }
 
 // LoRA タグの退避・復元
-const LORA_REGEX = /<lora:[^>]+>/gi;
-
 export function extractLoras(input) {
-  const loras = input.match(LORA_REGEX) || [];
-  const cleaned = input.replace(LORA_REGEX, '').replace(/,\s*,/g, ',').trim();
+  const loraRegex = /<lora:[^>]+>/gi;
+  const loras = input.match(loraRegex) || [];
+  let cleaned = input.replace(loraRegex, '');
+  // カンマの整理（連続カンマ、先頭/末尾カンマを除去）
+  cleaned = cleaned.replace(/,\s*,/g, ',').replace(/^\s*,\s*/, '').replace(/\s*,\s*$/, '').trim();
   return { cleaned, loras };
 }
 
 export function restoreLoras(text, loras) {
   if (loras.length === 0) return text;
+  if (!text) return loras.join(', ');
   return text + ", " + loras.join(', ');
 }
 
 export function cleanResult(text, structure, modelType) {
   // マークダウン除去
   let result = text.replace(/```[a-zA-Z]*\n?/g, '').replace(/```/g, '').trim();
+  // 先頭/末尾カンマ除去
+  result = result.replace(/^\s*,\s*/, '').replace(/\s*,\s*$/, '').trim();
 
-  // common モードの場合、品質タグを先頭に付加（完全一致で重複チェック）
+  // common モードの場合、品質タグを先頭に付加（完全一致 + アンダースコア正規化で重複チェック）
   if (structure === "common") {
     const qualityTags = getQualityTags(modelType);
-    const existingTags = result.split(',').map(t => t.trim().toLowerCase());
-    const toAdd = qualityTags.split(', ').filter(tag => !existingTags.includes(tag.trim().toLowerCase()));
-    if (toAdd.length > 0) result = toAdd.join(', ') + ", " + result;
+    const normalize = (s) => s.trim().toLowerCase().replace(/_/g, ' ');
+    const existingTags = result.split(',').map(normalize);
+    const toAdd = qualityTags.split(', ').filter(tag => !existingTags.includes(normalize(tag)));
+    if (toAdd.length > 0) {
+      result = result ? toAdd.join(', ') + ", " + result : toAdd.join(', ');
+    }
   }
 
   return result;

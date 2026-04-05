@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
 
 const LoraSelector = ({ onSelect }) => {
@@ -10,7 +10,7 @@ const LoraSelector = ({ onSelect }) => {
   const [loaded, setLoaded] = useState(false);
 
   const load = async () => {
-    if (loaded) { setOpen(o => !o); return; }
+    if (loaded && !error) { setOpen(o => !o); return; }
     setLoading(true);
     setError(null);
     try {
@@ -22,6 +22,7 @@ const LoraSelector = ({ onSelect }) => {
       setOpen(true);
     } catch {
       setError("サーバーに接続できません");
+      setLoaded(false);
     }
     setLoading(false);
   };

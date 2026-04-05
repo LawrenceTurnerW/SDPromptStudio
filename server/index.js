@@ -53,7 +53,7 @@ app.post("/api/generate", async (req, res) => {
       body: JSON.stringify(req.body)
     });
     const data = await response.json();
-    res.json(data);
+    res.status(response.status).json(data);
   } catch (e) {
     res.status(500).json({ error: "OpenRouter API request failed" });
   }

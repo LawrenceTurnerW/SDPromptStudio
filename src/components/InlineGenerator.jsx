@@ -103,7 +103,7 @@ const InlineGenerator = ({ category, onInsert, onClose }) => {
           <div className="flex items-center gap-1 text-xs text-[#8b949e]" title="ランダム性（低=安定, 高=多様）">
             <span>ランダム性</span>
             <input type="number" step="0.1" min="0" max="2" value={temperature}
-              onChange={(e) => setTemperature(parseFloat(e.target.value))}
+              onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setTemperature(v); }}
               className="w-12 bg-[#0d1117] border border-[#30363d] rounded-md px-1.5 py-1 text-xs outline-none" />
           </div>
         </div>

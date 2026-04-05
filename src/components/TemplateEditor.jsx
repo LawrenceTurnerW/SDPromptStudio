@@ -26,7 +26,8 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
       ...d,
       [cat]: [...d[cat], {
         title: `AI生成`, content, isOpen: true,
-        isAdvanced: false, loraName: "", weightMode: "fixed", weightFixed: "1.0", trigger: ""
+        isAdvanced: false, loraName: "", weightMode: "fixed", weightFixed: "1.0",
+        weightChoice: "0.6|0.7|0.8", weightRangeMin: "0.5", weightRangeMax: "1.0", weightRangeStep: "0.1", trigger: ""
       }]
     }));
   };
@@ -44,7 +45,8 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
       ...d,
       [cat]: [...d[cat], {
         title: "新規項目", content: "", isOpen: true,
-        isAdvanced: cat === 'char', loraName: "", weightMode: "fixed", weightFixed: "1.0", trigger: ""
+        isAdvanced: cat === 'char', loraName: "", weightMode: "fixed", weightFixed: "1.0",
+        weightChoice: "0.6|0.7|0.8", weightRangeMin: "0.5", weightRangeMax: "1.0", weightRangeStep: "0.1", trigger: ""
       }]
     }));
   };
