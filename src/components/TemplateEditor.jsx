@@ -1,4 +1,6 @@
-import { Plus, ChevronDown, ChevronRight, Edit3, Settings2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, ChevronDown, ChevronRight, Edit3, Settings2, Wand2 } from 'lucide-react';
+import InlineGenerator from './InlineGenerator.jsx';
 
 const CATEGORY_LABELS = {
   comm: '1. 共通 (COMM)',
@@ -7,7 +9,39 @@ const CATEGORY_LABELS = {
   people: '4. 設定 (人数)'
 };
 
+// comm, base は単一テキスト。char は複数アイテム + AI。people は複数アイテムのみ。
+const SINGLE_CATEGORIES = ['comm', 'base'];
+const AI_ENABLED = ['comm', 'base', 'char'];
+
 const TemplateEditor = ({ data, setData, buildCharContent }) => {
+  const [aiOpen, setAiOpen] = useState({ comm: true, base: true, char: true });
+
+  const toggleAi = (category) => setAiOpen(prev => ({ ...prev, [category]: !prev[category] }));
+
+  // 単一カテゴリ: テキストを直接更新
+  const updateSingleContent = (category, content) => {
+    const newData = { ...data };
+    newData[category] = content;
+    setData(newData);
+  };
+
+  // 単一カテゴリ: AI 生成結果で上書き
+  const handleAiOverwrite = (category, content) => {
+    updateSingleContent(category, content);
+  };
+
+  // 複数アイテムカテゴリ: AI 生成結果を追加
+  const handleAiInsert = (category, content) => {
+    const newData = { ...data };
+    newData[category] = [...newData[category], {
+      title: `AI生成 (${new Date().toLocaleTimeString()})`,
+      content,
+      isOpen: true,
+      isAdvanced: false,
+      loraName: "", weightMode: "fixed", weightFixed: "1.0", trigger: ""
+    }];
+    setData(newData);
+  };
 
   const updateItem = (category, idx, updates) => {
     const newData = { ...data };
@@ -56,7 +90,6 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
 
   const renderCharEditor = (item, category, idx) => (
     <div className="space-y-4">
-      {/* GUI / 直書き切替 */}
       <div className="flex justify-end">
         <button
           onClick={() => {
@@ -139,55 +172,117 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
     </div>
   );
 
+  // --- 単一テキストカラム（comm, base）---
+  const renderSingleColumn = (category) => (
+    <div className="bg-[#161b22] p-4 rounded-xl border border-slate-800 flex flex-col h-[650px] shadow-2xl">
+      <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <h2 className="font-black text-base text-slate-400 tracking-wider">{CATEGORY_LABELS[category]}</h2>
+        <button onClick={() => toggleAi(category)}
+          className={`p-2 rounded-lg transition border ${aiOpen[category]
+            ? 'bg-violet-600 border-violet-500 text-white'
+            : 'bg-slate-800 border-slate-700 text-violet-400 hover:bg-slate-700'}`}>
+          <Wand2 size={18} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+        {aiOpen[category] && (
+          <InlineGenerator
+            category={category}
+            onInsert={(content) => handleAiOverwrite(category, content)}
+            onClose={() => toggleAi(category)}
+          />
+        )}
+
+        <div>
+          <label className="text-xs font-bold text-slate-500 mb-2 block uppercase">プロンプト内容</label>
+          <textarea
+            className="w-full bg-[#0d1117] border border-slate-700 rounded p-3 text-sm font-mono text-cyan-100 outline-none h-40 resize-none focus:border-cyan-500"
+            value={data[category]}
+            onChange={(e) => updateSingleContent(category, e.target.value)}
+            placeholder="タグをカンマ区切りで入力..."
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // --- 複数アイテムカラム（char, people）---
+  const renderMultiColumn = (category) => (
+    <div className="bg-[#161b22] p-4 rounded-xl border border-slate-800 flex flex-col h-[650px] shadow-2xl">
+      <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <h2 className="font-black text-base text-slate-400 tracking-wider">{CATEGORY_LABELS[category]}</h2>
+        <div className="flex gap-1">
+          {AI_ENABLED.includes(category) && (
+            <button onClick={() => toggleAi(category)}
+              className={`p-2 rounded-lg transition border ${aiOpen[category]
+                ? 'bg-violet-600 border-violet-500 text-white'
+                : 'bg-slate-800 border-slate-700 text-violet-400 hover:bg-slate-700'}`}>
+              <Wand2 size={18} />
+            </button>
+          )}
+          <button onClick={() => addItem(category)} className="text-cyan-400 hover:bg-slate-700 bg-slate-800 p-2 rounded-lg transition border border-slate-700">
+            <Plus size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+        {aiOpen[category] && (
+          <InlineGenerator
+            category={category}
+            onInsert={(content) => handleAiInsert(category, content)}
+            onClose={() => toggleAi(category)}
+          />
+        )}
+
+        {data[category].map((item, idx) => (
+          <div key={idx} className="bg-[#0d1117] border border-slate-700 rounded-lg overflow-hidden shadow-md">
+            <div className="flex items-center gap-3 p-3 cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition"
+              onClick={() => updateItem(category, idx, { isOpen: !item.isOpen })}>
+              {item.isOpen ? <ChevronDown size={20} className="text-cyan-500" /> : <ChevronRight size={20} />}
+              <input
+                className="bg-transparent border-none text-base font-bold text-slate-200 outline-none w-full focus:text-cyan-400"
+                value={item.title}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => updateItem(category, idx, { title: e.target.value })}
+                placeholder="管理用タイトル"
+              />
+            </div>
+
+            {item.isOpen && (
+              <div className="p-4 space-y-3 border-t border-slate-700 bg-black/30">
+                {category === 'char' ? renderCharEditor(item, category, idx) : (
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 mb-2 block uppercase">プロンプト内容</label>
+                    <textarea
+                      className="w-full bg-[#0d1117] border border-slate-700 rounded p-3 text-sm font-mono text-cyan-100 outline-none h-32 resize-none focus:border-cyan-500"
+                      value={item.content}
+                      onChange={(e) => updateItem(category, idx, { content: e.target.value })}
+                    />
+                    {category === 'people' && renderLayoutPreview(item.content)}
+                  </div>
+                )}
+                <button onClick={() => removeItem(category, idx)}
+                  className="w-full py-2 mt-4 text-sm font-bold text-red-900 bg-red-950/20 hover:bg-red-900 hover:text-white rounded transition">
+                  この項目を削除
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
       {Object.keys(data).map((category) => (
-        <div key={category} className="bg-[#161b22] p-4 rounded-xl border border-slate-800 flex flex-col h-[650px] shadow-2xl">
-          <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
-            <h2 className="font-black text-base text-slate-400 tracking-wider">{CATEGORY_LABELS[category]}</h2>
-            <button onClick={() => addItem(category)} className="text-cyan-400 hover:bg-slate-700 bg-slate-800 p-2 rounded-lg transition border border-slate-700">
-              <Plus size={20} />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-            {data[category].map((item, idx) => (
-              <div key={idx} className="bg-[#0d1117] border border-slate-700 rounded-lg overflow-hidden shadow-md">
-                {/* アコーディオン */}
-                <div className="flex items-center gap-3 p-3 cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition"
-                  onClick={() => updateItem(category, idx, { isOpen: !item.isOpen })}>
-                  {item.isOpen ? <ChevronDown size={20} className="text-cyan-500" /> : <ChevronRight size={20} />}
-                  <input
-                    className="bg-transparent border-none text-base font-bold text-slate-200 outline-none w-full focus:text-cyan-400"
-                    value={item.title}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => updateItem(category, idx, { title: e.target.value })}
-                    placeholder="管理用タイトル"
-                  />
-                </div>
-
-                {item.isOpen && (
-                  <div className="p-4 space-y-3 border-t border-slate-700 bg-black/30">
-                    {category === 'char' ? renderCharEditor(item, category, idx) : (
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 mb-2 block uppercase">プロンプト内容</label>
-                        <textarea
-                          className="w-full bg-[#0d1117] border border-slate-700 rounded p-3 text-sm font-mono text-cyan-100 outline-none h-32 resize-none focus:border-cyan-500"
-                          value={item.content}
-                          onChange={(e) => updateItem(category, idx, { content: e.target.value })}
-                        />
-                        {category === 'people' && renderLayoutPreview(item.content)}
-                      </div>
-                    )}
-                    <button onClick={() => removeItem(category, idx)}
-                      className="w-full py-2 mt-4 text-sm font-bold text-red-900 bg-red-950/20 hover:bg-red-900 hover:text-white rounded transition">
-                      この項目を削除
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+        <div key={category}>
+          {SINGLE_CATEGORIES.includes(category)
+            ? renderSingleColumn(category)
+            : renderMultiColumn(category)
+          }
         </div>
       ))}
     </div>

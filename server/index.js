@@ -1,7 +1,11 @@
 import express from "express";
 import dotenv from "dotenv";
-import { resolve, join } from "path";
-import { existsSync, mkdirSync, writeFileSync, readdirSync, readFileSync } from "fs";
+import { resolve, join, dirname } from "path";
+import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from "fs";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PID_FILE = join(__dirname, '..', '.server.pid');
 
 dotenv.config();
 
@@ -93,5 +97,11 @@ if (existsSync(distPath)) {
   });
 }
 
+// PID ファイル管理
+writeFileSync(PID_FILE, String(process.pid));
+const cleanup = () => { try { unlinkSync(PID_FILE); } catch {} process.exit(); };
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT} (PID: ${process.pid})`));

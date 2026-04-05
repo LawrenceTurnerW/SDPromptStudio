@@ -25,6 +25,9 @@ desktop.ini
 *.log
 npm-debug.log*
 
+# Server PID
+.server.pid
+
 # Archive
 *.zip
 *.tar.gz
