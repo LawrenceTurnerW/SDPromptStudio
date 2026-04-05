@@ -5,15 +5,34 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from "
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PID_FILE = join(__dirname, '..', '.server.pid');
+const ROOT_DIR = resolve(__dirname, '..');
+const PID_FILE = join(ROOT_DIR, '.server.pid');
+const CONFIG_FILE = join(ROOT_DIR, 'config.json');
 
-dotenv.config();
+dotenv.config({ path: join(ROOT_DIR, '.env') });
 
 const app = express();
 app.use(express.json());
 
+// --- Config management ---
+function loadConfig() {
+  if (existsSync(CONFIG_FILE)) {
+    try { return JSON.parse(readFileSync(CONFIG_FILE, 'utf-8')); } catch {}
+  }
+  return {};
+}
+
+function saveConfig(config) {
+  writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+function getWildcardsPath() {
+  const config = loadConfig();
+  return config.wildcardsPath || process.env.WILDCARDS_PATH || null;
+}
+
 // Production: serve built frontend
-const distPath = resolve("dist");
+const distPath = resolve(ROOT_DIR, 'dist');
 if (existsSync(distPath)) {
   app.use(express.static(distPath));
 }
@@ -40,11 +59,29 @@ app.post("/api/generate", async (req, res) => {
   }
 });
 
+// --- API: Config ---
+app.get("/api/config", (req, res) => {
+  const config = loadConfig();
+  const wildcardsPath = config.wildcardsPath || process.env.WILDCARDS_PATH || "";
+  res.json({ wildcardsPath });
+});
+
+app.post("/api/config", (req, res) => {
+  const { wildcardsPath } = req.body;
+  if (typeof wildcardsPath !== 'string') {
+    return res.status(400).json({ error: "Invalid path" });
+  }
+  const config = loadConfig();
+  config.wildcardsPath = wildcardsPath.trim();
+  saveConfig(config);
+  const exists = wildcardsPath.trim() ? existsSync(wildcardsPath.trim()) : false;
+  res.json({ success: true, wildcardsPath: config.wildcardsPath, exists });
+});
+
 // --- API: Wildcards file operations ---
 
-// GET: Wildcards path status
 app.get("/api/wildcards/status", (req, res) => {
-  const wildcardsPath = process.env.WILDCARDS_PATH;
+  const wildcardsPath = getWildcardsPath();
   if (!wildcardsPath) {
     return res.json({ configured: false, path: null });
   }
@@ -52,18 +89,19 @@ app.get("/api/wildcards/status", (req, res) => {
   return res.json({ configured: true, path: wildcardsPath, exists });
 });
 
-// POST: Export wildcards files
 app.post("/api/wildcards/export", (req, res) => {
-  const wildcardsPath = process.env.WILDCARDS_PATH;
+  const wildcardsPath = getWildcardsPath();
   if (!wildcardsPath) {
-    return res.status(400).json({ error: "WILDCARDS_PATH not configured in .env" });
+    return res.status(400).json({ error: "Wildcards パスが未設定です" });
   }
   if (!existsSync(wildcardsPath)) {
     mkdirSync(wildcardsPath, { recursive: true });
   }
+  const ALLOWED_FILES = ['comm', 'base', 'char', 'people'];
   try {
-    const { files } = req.body; // { comm: "...", base: "...", char: "...", people: "..." }
+    const { files } = req.body;
     for (const [name, content] of Object.entries(files)) {
+      if (!ALLOWED_FILES.includes(name)) continue;
       writeFileSync(join(wildcardsPath, `${name}.txt`), content, "utf-8");
     }
     res.json({ success: true, path: wildcardsPath });
@@ -72,9 +110,8 @@ app.post("/api/wildcards/export", (req, res) => {
   }
 });
 
-// GET: Read current wildcards files
 app.get("/api/wildcards/files", (req, res) => {
-  const wildcardsPath = process.env.WILDCARDS_PATH;
+  const wildcardsPath = getWildcardsPath();
   if (!wildcardsPath || !existsSync(wildcardsPath)) {
     return res.json({ files: {} });
   }
@@ -97,7 +134,7 @@ if (existsSync(distPath)) {
   });
 }
 
-// PID ファイル管理
+// PID file management
 writeFileSync(PID_FILE, String(process.pid));
 const cleanup = () => { try { unlinkSync(PID_FILE); } catch {} process.exit(); };
 process.on('SIGTERM', cleanup);

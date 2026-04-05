@@ -19,7 +19,7 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
 
   const updateSingleContent = (cat, content) => setData(d => ({ ...d, [cat]: content }));
 
-  const handleAiOverwrite = (cat, content) => updateSingleContent(cat, content);
+
 
   const handleAiInsert = (cat, content) => {
     setData(d => ({
@@ -68,7 +68,7 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
           {parts.map((_, i) => (
             <div key={i} className="flex-1 flex items-center justify-center text-xs font-medium"
               style={{ backgroundColor: `hsl(${210 + i * 30}, 40%, ${18 + i * 4}%)`, color: `hsl(${210 + i * 30}, 70%, 70%)` }}>
-              Region {i + 1}
+              リージョン {i + 1}
             </div>
           ))}
         </div>
@@ -193,7 +193,7 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
           {hasAi && aiOpen[cat] && (
             <InlineGenerator
               category={cat}
-              onInsert={(content) => isSingle ? handleAiOverwrite(cat, content) : handleAiInsert(cat, content)}
+              onInsert={(content) => isSingle ? updateSingleContent(cat, content) : handleAiInsert(cat, content)}
               onClose={() => toggleAi(cat)}
             />
           )}

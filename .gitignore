@@ -28,6 +28,9 @@ npm-debug.log*
 # Server PID
 .server.pid
 
+# Local config
+config.json
+
 # Archive
 *.zip
 *.tar.gz
