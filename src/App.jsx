@@ -25,7 +25,6 @@ const App = () => {
 
   useEffect(() => {
     fetch('/api/wildcards/status').then(r => r.json()).then(setWildcardsStatus).catch(() => {});
-
     const savedWork = localStorage.getItem(STORAGE_KEY_WORK);
     if (savedWork) {
       try {
@@ -34,7 +33,6 @@ const App = () => {
         if (p.negativePrompt) setNegativePrompt(p.negativePrompt);
       } catch (e) { console.error(e); }
     }
-
     const savedPresets = localStorage.getItem(STORAGE_KEY_PRESETS);
     if (savedPresets) {
       try { setPresets(JSON.parse(savedPresets)); } catch (e) { console.error(e); }
@@ -75,7 +73,7 @@ const App = () => {
         body: JSON.stringify({ files })
       });
       const result = await res.json();
-      setExportMsg(result.success ? "Forge に書き出しました" : (result.error || "書き出しエラー"));
+      setExportMsg(result.success ? "書き出し完了" : (result.error || "書き出しエラー"));
       setTimeout(() => setExportMsg(null), 3000);
     } catch {
       setExportMsg("サーバーに接続できません");
@@ -84,40 +82,50 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-slate-200 p-6 font-sans text-base">
-      <header className="flex justify-between items-center mb-6 bg-[#161b22] p-5 rounded-xl border border-slate-700 shadow-xl">
-        <div className="flex items-center gap-6">
-          <h1 className="text-3xl font-bold text-cyan-400 flex items-center gap-3">
-            <Layout size={32} /> SD Prompt Studio
-          </h1>
-          <span className="text-xs text-slate-500">
-            {wildcardsStatus?.configured
-              ? <span className="text-green-400">{wildcardsStatus.path}</span>
-              : <span className="text-yellow-400">.env で WILDCARDS_PATH を設定</span>
-            }
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          {exportMsg && <span className="text-sm text-green-400 animate-pulse">{exportMsg}</span>}
-          <button onClick={exportToForge} className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-xl font-black text-base shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition">
-            Forge へ保存
-          </button>
+    <div className="min-h-screen bg-[#0d1117] text-[#e6edf3] font-sans">
+      {/* Header */}
+      <header className="border-b border-[#30363d] bg-[#161b22]">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-semibold flex items-center gap-2">
+              <Layout size={22} className="text-[#8b949e]" />
+              SD Prompt Studio
+            </h1>
+            <span className="text-xs text-[#8b949e] border border-[#30363d] rounded-full px-2.5 py-0.5">
+              {wildcardsStatus?.configured
+                ? <span className="text-[#3fb950]">{wildcardsStatus.path}</span>
+                : <span className="text-[#d29922]">WILDCARDS_PATH not set</span>
+              }
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {exportMsg && <span className="text-sm text-[#3fb950]">{exportMsg}</span>}
+            <button onClick={exportToForge}
+              className="bg-[#238636] hover:bg-[#2ea043] text-white text-sm font-medium px-4 py-1.5 rounded-md border border-[#2ea043]/40 transition">
+              Forge へ保存
+            </button>
+          </div>
         </div>
       </header>
 
-      <TemplateEditor data={data} setData={setData} buildCharContent={buildCharContent} />
+      {/* Main */}
+      <main className="max-w-5xl mx-auto px-6 py-6 space-y-6">
+        <TemplateEditor data={data} setData={setData} buildCharContent={buildCharContent} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-        <PresetManager
-          presets={presets}
-          setPresets={setPresets}
-          data={data}
-          setData={setData}
-          negativePrompt={negativePrompt}
-          setNegativePrompt={setNegativePrompt}
-        />
-        <NegativePrompt negativePrompt={negativePrompt} setNegativePrompt={setNegativePrompt} />
-      </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <PresetManager
+            presets={presets}
+            setPresets={setPresets}
+            data={data}
+            setData={setData}
+            negativePrompt={negativePrompt}
+            setNegativePrompt={setNegativePrompt}
+          />
+          <div className="space-y-4">
+            <NegativePrompt negativePrompt={negativePrompt} setNegativePrompt={setNegativePrompt} />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

@@ -10,13 +10,12 @@ const MODES = [
 ];
 
 const MODELS = [
-  { value: 'pony', label: 'PONY' },
-  { value: 'sd15', label: 'SD1.5' },
+  { value: 'pony', label: 'Pony' },
+  { value: 'sd15', label: 'SD 1.5' },
   { value: 'sdxl', label: 'SDXL' },
   { value: 'real', label: 'Real' },
 ];
 
-// category → structure の自動マッピング
 const STRUCTURE_MAP = { comm: 'common', base: 'base', char: 'character' };
 
 const InlineGenerator = ({ category, onInsert, onClose }) => {
@@ -69,75 +68,79 @@ const InlineGenerator = ({ category, onInsert, onClose }) => {
   };
 
   return (
-    <div className="bg-violet-950/30 border border-violet-800/50 rounded-lg p-3 space-y-2">
-      {/* ヘッダー */}
-      <div className="flex justify-between items-center">
-        <span className="text-xs font-bold text-violet-400 flex items-center gap-1">
+    <div className="border border-[#6e40c9]/30 rounded-md bg-[#161b22] overflow-hidden">
+      <div className="flex justify-between items-center px-3 py-2 border-b border-[#6e40c9]/20 bg-[#6e40c9]/5">
+        <span className="text-xs font-medium text-[#bc8cff] flex items-center gap-1.5">
           <Wand2 size={12} /> AI 生成
         </span>
-        <button onClick={onClose} className="text-slate-500 hover:text-slate-300"><X size={14} /></button>
+        <button onClick={onClose} className="text-[#8b949e] hover:text-[#e6edf3] transition"><X size={14} /></button>
       </div>
 
-      {/* モード */}
-      <div className="flex gap-1 flex-wrap">
-        {MODES.map(m => {
-          const Icon = m.icon;
-          return (
-            <button key={m.value} onClick={() => setMode(m.value)}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold transition ${mode === m.value
-                ? 'bg-violet-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
-              <Icon size={11} />{m.label}
-            </button>
-          );
-        })}
-      </div>
+      <div className="p-3 space-y-3">
+        {/* Mode + Model row */}
+        <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex rounded-md overflow-hidden border border-[#30363d]">
+            {MODES.map(m => {
+              const Icon = m.icon;
+              return (
+                <button key={m.value} onClick={() => setMode(m.value)}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition border-r last:border-r-0 border-[#30363d] ${
+                    mode === m.value
+                      ? 'bg-[#6e40c9]/20 text-[#bc8cff]'
+                      : 'text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#1c2129]'
+                  }`}>
+                  <Icon size={11} />{m.label}
+                </button>
+              );
+            })}
+          </div>
 
-      {/* モデル + Temp */}
-      <div className="flex gap-2 items-center">
-        <select value={modelType} onChange={(e) => setModelType(e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs outline-none flex-1">
-          {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-        </select>
-        <div className="flex items-center gap-1 text-xs text-slate-500">
-          <span>T:</span>
-          <input type="number" step="0.1" min="0" max="2" value={temperature}
-            onChange={(e) => setTemperature(parseFloat(e.target.value))}
-            className="w-12 bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-xs outline-none" />
-        </div>
-      </div>
+          <select value={modelType} onChange={(e) => setModelType(e.target.value)}
+            className="bg-[#0d1117] border border-[#30363d] rounded-md px-2 py-1 text-xs outline-none">
+            {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
 
-      {/* 入力 */}
-      <textarea value={input} onChange={(e) => setInput(e.target.value)}
-        placeholder="入力（空でもOK）..."
-        className="w-full bg-[#0d1117] border border-slate-700 rounded p-2 text-xs font-mono text-slate-200 h-16 outline-none focus:border-violet-500 resize-none" />
-
-      {/* 生成ボタン */}
-      <button onClick={generate} disabled={loading}
-        className={`w-full py-2 rounded-lg font-bold text-sm transition ${loading
-          ? 'bg-slate-700 text-slate-400 cursor-wait'
-          : 'bg-violet-600 hover:bg-violet-500 text-white active:scale-[0.98]'}`}>
-        {loading ? "生成中..." : "AI で生成"}
-      </button>
-
-      {error && <div className="text-red-400 text-xs">{error}</div>}
-
-      {/* 出力 */}
-      {output && (
-        <div className="space-y-1.5">
-          <textarea value={output} onChange={(e) => setOutput(e.target.value)}
-            className="w-full bg-violet-950/30 border border-violet-800/50 rounded p-2 text-xs font-mono text-violet-200 h-16 outline-none resize-none" />
-          <div className="flex gap-2">
-            <button onClick={() => { onInsert(output); setOutput(""); setInput(""); }}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-bold bg-green-700 hover:bg-green-600 text-white transition">
-              <Check size={12} /> 追加
-            </button>
-            <button onClick={() => navigator.clipboard.writeText(output)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition">
-              <Copy size={12} /> コピー
-            </button>
+          <div className="flex items-center gap-1 text-xs text-[#8b949e]" title="ランダム性（低=安定, 高=多様）">
+            <span>ランダム性</span>
+            <input type="number" step="0.1" min="0" max="2" value={temperature}
+              onChange={(e) => setTemperature(parseFloat(e.target.value))}
+              className="w-12 bg-[#0d1117] border border-[#30363d] rounded-md px-1.5 py-1 text-xs outline-none" />
           </div>
         </div>
-      )}
+
+        {/* Input */}
+        <textarea value={input} onChange={(e) => setInput(e.target.value)}
+          placeholder="プロンプトを入力（生成モードなら空でもOK）..."
+          className="w-full bg-[#0d1117] border border-[#30363d] rounded-md px-3 py-2 text-xs font-mono text-[#e6edf3] h-14 outline-none focus:border-[#6e40c9]/60 resize-none transition" />
+
+        {/* Generate button */}
+        <button onClick={generate} disabled={loading}
+          className={`w-full py-1.5 rounded-md text-sm font-medium transition ${loading
+            ? 'bg-[#21262d] text-[#484f58] cursor-wait'
+            : 'bg-[#6e40c9] hover:bg-[#7c4ddb] text-white'}`}>
+          {loading ? "生成中..." : "生成"}
+        </button>
+
+        {error && <div className="text-[#f85149] text-xs">{error}</div>}
+
+        {/* Output */}
+        {output && (
+          <div className="space-y-2">
+            <textarea value={output} onChange={(e) => setOutput(e.target.value)}
+              className="w-full bg-[#0d1117] border border-[#6e40c9]/30 rounded-md px-3 py-2 text-xs font-mono text-[#bc8cff] h-14 outline-none resize-none" />
+            <div className="flex gap-2">
+              <button onClick={() => { onInsert(output); setOutput(""); setInput(""); }}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-medium bg-[#238636] hover:bg-[#2ea043] text-white transition">
+                <Check size={12} /> 適用
+              </button>
+              <button onClick={() => navigator.clipboard.writeText(output)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium border border-[#30363d] text-[#8b949e] hover:text-[#e6edf3] transition">
+                <Copy size={12} /> コピー
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
