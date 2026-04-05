@@ -100,8 +100,9 @@ app.post("/api/wildcards/export", (req, res) => {
   const ALLOWED_FILES = ['comm', 'base', 'char', 'people'];
   try {
     const { files } = req.body;
-    for (const [name, content] of Object.entries(files)) {
-      if (!ALLOWED_FILES.includes(name)) continue;
+    // 全ファイルを書き出し（送信されなかったファイルは空にする）
+    for (const name of ALLOWED_FILES) {
+      const content = (files && files[name]) || "";
       writeFileSync(join(wildcardsPath, `${name}.txt`), content, "utf-8");
     }
     res.json({ success: true, path: wildcardsPath });
@@ -132,9 +133,13 @@ app.get("/api/wildcards/files", (req, res) => {
 function getForgeRoot() {
   const wPath = getWildcardsPath();
   if (!wPath) return null;
-  // wildcards path: .../extensions/sd-dynamic-prompts/wildcards → go up 3 levels to forge root
-  const forgeRoot = resolve(wPath, '..', '..', '..');
-  return existsSync(forgeRoot) ? forgeRoot : null;
+  // Wildcards パスから上方向に webui-forge / webui ルートを探す
+  let dir = resolve(wPath);
+  for (let i = 0; i < 6; i++) {
+    dir = resolve(dir, '..');
+    if (existsSync(join(dir, 'models', 'Lora'))) return dir;
+  }
+  return null;
 }
 
 function scanLorasRecursive(dir, prefix = '') {

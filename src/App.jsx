@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout, Settings, FolderOpen, Check } from 'lucide-react';
+import { Layout, FolderOpen, Check } from 'lucide-react';
 import TemplateEditor from './components/TemplateEditor.jsx';
 import PresetManager from './components/PresetManager.jsx';
 import NegativePrompt from './components/NegativePrompt.jsx';
@@ -21,6 +21,15 @@ const DEFAULT_DATA = {
 };
 
 const DEFAULT_NEGATIVE = "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
+
+// 旧形式（comm/base が配列）からの移行
+function migrateData(data) {
+  if (!data) return null;
+  const migrated = { ...data };
+  if (Array.isArray(migrated.comm)) migrated.comm = migrated.comm.map(i => i.content).filter(Boolean).join(', ');
+  if (Array.isArray(migrated.base)) migrated.base = migrated.base.map(i => i.content).filter(Boolean).join(', ');
+  return migrated;
+}
 
 const App = () => {
   const [wildcardsPath, setWildcardsPath] = useState("");
@@ -48,12 +57,7 @@ const App = () => {
     if (savedWork) {
       try {
         const p = JSON.parse(savedWork);
-        if (p.data) {
-          const migrated = { ...p.data };
-          if (Array.isArray(migrated.comm)) migrated.comm = migrated.comm.map(i => i.content).filter(Boolean).join(', ');
-          if (Array.isArray(migrated.base)) migrated.base = migrated.base.map(i => i.content).filter(Boolean).join(', ');
-          setData(migrated);
-        }
+        if (p.data) setData(migrateData(p.data));
         if (p.negativePrompt) setNegativePrompt(p.negativePrompt);
       } catch (e) { console.error(e); }
     }
@@ -198,7 +202,7 @@ const App = () => {
             presets={presets}
             setPresets={setPresets}
             data={data}
-            setData={setData}
+            setData={(d) => setData(migrateData(d))}
             negativePrompt={negativePrompt}
             setNegativePrompt={setNegativePrompt}
           />

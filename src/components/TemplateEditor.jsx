@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, ChevronDown, ChevronRight, Edit3, Settings2, Wand2, Trash2 } from 'lucide-react';
 import InlineGenerator from './InlineGenerator.jsx';
 import LoraSelector from './LoraSelector.jsx';
+import CompositionPresets from './CompositionPresets.jsx';
 
 const SECTION_INFO = {
   comm: { label: '共通 (COMM)', desc: '全リージョンに適用される品質・スタイルタグ' },
@@ -19,8 +20,6 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
   const toggleAi = (cat) => setAiOpen(p => ({ ...p, [cat]: !p[cat] }));
 
   const updateSingleContent = (cat, content) => setData(d => ({ ...d, [cat]: content }));
-
-
 
   const handleAiInsert = (cat, content) => {
     setData(d => ({
@@ -216,6 +215,16 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
               onChange={(e) => updateSingleContent(cat, e.target.value)}
               placeholder="タグを入力..."
             />
+          )}
+
+          {/* Composition presets (people only) */}
+          {cat === 'people' && (
+            <CompositionPresets onAdd={(preset) => {
+              setData(d => ({
+                ...d,
+                people: [...d.people, preset]
+              }));
+            }} />
           )}
 
           {/* Multi items (char, people) */}
