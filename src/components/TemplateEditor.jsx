@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, ChevronDown, ChevronRight, Edit3, Settings2, Wand2, Trash2 } from 'lucide-react';
 import InlineGenerator from './InlineGenerator.jsx';
+import LoraSelector from './LoraSelector.jsx';
 
 const SECTION_INFO = {
   comm: { label: '共通 (COMM)', desc: '全リージョンに適用される品質・スタイルタグ' },
@@ -90,6 +91,14 @@ const TemplateEditor = ({ data, setData, buildCharContent }) => {
 
       {item.isAdvanced ? (
         <div className="space-y-3">
+          <LoraSelector onSelect={({ loraName, trigger, modelName }) => {
+            updateItem(cat, idx, {
+              loraName,
+              trigger: trigger || item.trigger,
+              title: modelName || item.title,
+            });
+          }} />
+
           <div>
             <label className="text-xs text-[#8b949e] mb-1 block">LoRA 名</label>
             <input className="w-full bg-[#0d1117] border border-[#30363d] rounded-md px-3 py-1.5 text-sm outline-none focus:border-[#58a6ff] transition"

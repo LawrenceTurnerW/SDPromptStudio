@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import { resolve, join, dirname } from "path";
-import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, readdirSync } from "fs";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -125,6 +125,56 @@ app.get("/api/wildcards/files", (req, res) => {
   } catch (e) {
     res.status(500).json({ error: "Failed to read wildcards files" });
   }
+});
+
+// --- API: LoRA list with Civitai metadata ---
+
+function getForgeRoot() {
+  const wPath = getWildcardsPath();
+  if (!wPath) return null;
+  // wildcards path: .../extensions/sd-dynamic-prompts/wildcards → go up 3 levels to forge root
+  const forgeRoot = resolve(wPath, '..', '..', '..');
+  return existsSync(forgeRoot) ? forgeRoot : null;
+}
+
+function scanLorasRecursive(dir, prefix = '') {
+  const results = [];
+  if (!existsSync(dir)) return results;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      results.push(...scanLorasRecursive(join(dir, entry.name), prefix ? `${prefix}/${entry.name}` : entry.name));
+    } else if (entry.name.endsWith('.safetensors')) {
+      const baseName = entry.name.replace('.safetensors', '');
+      const infoPath = join(dir, `${baseName}.civitai.info`);
+      const lora = { file: prefix ? `${prefix}/${baseName}` : baseName, name: baseName };
+      if (existsSync(infoPath)) {
+        try {
+          const info = JSON.parse(readFileSync(infoPath, 'utf-8'));
+          lora.modelName = info.model?.name || baseName;
+          lora.trainedWords = info.trainedWords || [];
+          lora.baseModel = info.baseModel || '';
+          // サンプルプロンプトを1つ取得
+          const sampleImg = info.images?.find(img => img.meta?.prompt);
+          if (sampleImg) lora.samplePrompt = sampleImg.meta.prompt;
+        } catch {}
+      }
+      results.push(lora);
+    }
+  }
+  return results;
+}
+
+app.get("/api/loras", (req, res) => {
+  const forgeRoot = getForgeRoot();
+  if (!forgeRoot) {
+    return res.json({ loras: [], error: "Forge root not found (Wildcards パスを先に設定してください)" });
+  }
+  const loraDir = join(forgeRoot, 'models', 'Lora');
+  if (!existsSync(loraDir)) {
+    return res.json({ loras: [], error: `LoRA フォルダが見つかりません: ${loraDir}` });
+  }
+  const loras = scanLorasRecursive(loraDir);
+  res.json({ loras });
 });
 
 // Production: SPA fallback
